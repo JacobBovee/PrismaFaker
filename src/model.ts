@@ -35,8 +35,8 @@ export interface JSONEnum {
 export interface JSONModel {
     enums: JSONEnum[];
     types: JSONType[];
-    findEnum: (enumName: string) => JSONEnum | false;
-    findType: (typeName: string) => JSONType | false;
+    findEnum: (enumName: string) => JSONEnum | undefined;
+    findType: (typeName: string) => JSONType | undefined;
 }
 
 /**
@@ -134,7 +134,7 @@ export class Model {
     /**
      * 
      * @param typeName 
-     * @return {JSONType | false} 
+     * @return {JSONType | undefined} 
      */
     findType(typeName: string) {
         return this.types.find((type: JSONType) => type.name === typeName);
@@ -143,7 +143,7 @@ export class Model {
     /**
      * 
      * @param enumName 
-     * @return {JSONEnum | false} 
+     * @return {JSONEnum | undefined} 
      */
     findEnum(enumName: string) {
         return this.enums.find((jsonEnum: JSONEnum) => jsonEnum.name === enumName);
