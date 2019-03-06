@@ -3,17 +3,14 @@ import {
     Model,
     JSONModel,
 } from './model';
-import { generateType } from './generate';
+import { Generator } from './generator';
 import { CLOSE_BRACKET, START_MUTATION} from './constants';
+import { inspect } from 'util';
 
 interface Args {
     path: string;
     records: number;
     outpath?: string;
-}
-
-export interface CreatedRecords {
-    [record: string]: number;
 }
 
 export class PrismaFaker {
@@ -37,22 +34,22 @@ export class PrismaFaker {
     }
 
     writeSeedFile(model: JSONModel) {
-        const createdRecords: CreatedRecords = {};
+        const generator = new Generator(model);
         // Begin write stream
         const stream = fs.createWriteStream(this.outpath, { flags: 'w' });
         stream.write(START_MUTATION);
         // Write types
         for (let i = 0; i < model.types.length; i++) {
             const type = model.types[i];
-            if (!createdRecords[type.name] || createdRecords[type.name] < 1000) {
-                createdRecords[type.name] = 0;
-                while (createdRecords[type.name] < this.records) {
-                    const recordName = `${type.name}${createdRecords[type.name]}:`;
+            if (!generator.createdRecords[type.name] || generator.createdRecords[type.name] < 1000) {
+                generator.createdRecords[type.name] = 1;
+                while (generator.createdRecords[type.name] <= this.records) {
+                    const recordName = `${type.name}${generator.createdRecords[type.name]}:`;
                     const createString = `create${type.name} (\ndata:\n`;
                     const closeString = `\n) { id }\n`;
                     stream.write(recordName);
                     stream.write(createString);
-                    stream.write(generateType(model, type, createdRecords)+closeString);
+                    stream.write(`${inspect(generator.generateType(type), { depth: Infinity })}${closeString}`);
                 }
             }
         }
@@ -73,4 +70,3 @@ export class PrismaFaker {
 
 }
 
-const ps = new PrismaFaker({ path: '/Users/jacobbovee/graphql-prisma-typescript/prisma/datamodel.graphql', records: 10 });

@@ -191,7 +191,7 @@ export const utils = {
      * @returns {string}
      */
     namedType: (field: JSONField) => {
-        return field.types[-1];
+        return field.types[field.types.length-1];
     },
 
     /**
