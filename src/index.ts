@@ -1,12 +1,28 @@
 import * as fs from "fs";
-import Parser from './parser';
+import {
+    Model,
+    JSONModel,
+} from './model';
+import { generateType } from './generate';
+import { CLOSE_BRACKET, START_MUTATION} from './constants';
 
 interface Args {
     path: string;
+    records: number;
+    outpath?: string;
+}
+
+export interface CreatedRecords {
+    [record: string]: number;
 }
 
 export class PrismaFaker {
-    constructor({ path }: Args) {
+    records: number;
+    outpath: string;
+    
+    constructor({ path, records, outpath='seed.graphql' }: Args) {
+        this.records = records;
+        this.outpath = outpath;
         this.fetchFile(path);
     }
 
@@ -15,17 +31,46 @@ export class PrismaFaker {
             if (err) {
                 throw err;
             }
-            const jsonModel: any = new Parser(data.toString("utf-8"));
+            const jsonModel: JSONModel = new Model(data.toString("utf-8"));
             this.writeSeedFile(jsonModel);
         });
     }
 
-    createMutation() {
-        // Create mutations for each type definition here
+    writeSeedFile(model: JSONModel) {
+        const createdRecords: CreatedRecords = {};
+        // Begin write stream
+        const stream = fs.createWriteStream(this.outpath, { flags: 'w' });
+        stream.write(START_MUTATION);
+        // Write types
+        for (let i = 0; i < model.types.length; i++) {
+            const type = model.types[i];
+            if (!createdRecords[type.name] || createdRecords[type.name] < 1000) {
+                createdRecords[type.name] = 0;
+                while (createdRecords[type.name] < this.records) {
+                    const recordName = `${type.name}${createdRecords[type.name]}:`;
+                    const createString = `create${type.name} (\ndata:\n`;
+                    const closeString = `\n) { id }\n`;
+                    stream.write(recordName);
+                    stream.write(createString);
+                    stream.write(generateType(model, type, createdRecords)+closeString);
+                }
+            }
+        }
+        // Finish writing to and close write stream
+        this.endMutation(stream);
     }
 
-    writeSeedFile(model: any) {
-        // Iterate over types here
-        console.log('model =>', model);
+    endMutation(stream: fs.WriteStream) {
+        stream.write(CLOSE_BRACKET);
+        stream.close();
+        stream.end((err: Error) => {
+            if (err) {
+                console.error(err);
+                throw err;
+            }
+        });
     }
+
 }
+
+const ps = new PrismaFaker({ path: '/Users/jacobbovee/graphql-prisma-typescript/prisma/datamodel.graphql', records: 10 });
