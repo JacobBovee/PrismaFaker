@@ -200,7 +200,7 @@ export const utils = {
      * @returns {number}
      */
     isRequired: (field: JSONField) => {
-        return field.types.indexOf('NonNullType');
+        return field.types.indexOf('NonNullType') > -1 ? true : false;
     },
 
     /**

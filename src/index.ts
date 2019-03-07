@@ -32,7 +32,11 @@ export class PrismaFaker {
             this.writeSeedFile(jsonModel);
         });
     }
-
+    /**
+     * 
+     * @param model 
+     * Writes seed file, establishes a generator and loops over each type
+     */
     writeSeedFile(model: JSONModel) {
         const generator = new Generator(model);
         // Begin write stream
@@ -57,6 +61,12 @@ export class PrismaFaker {
         this.endMutation(stream);
     }
 
+    /**
+     * 
+     * @param stream 
+     * Write  ending close bracket,
+     * close stream and throw error if any
+     */
     endMutation(stream: fs.WriteStream) {
         stream.write(CLOSE_BRACKET);
         stream.close();
@@ -69,4 +79,3 @@ export class PrismaFaker {
     }
 
 }
-
