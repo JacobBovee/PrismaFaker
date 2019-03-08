@@ -45,15 +45,15 @@ export class PrismaFaker {
         // Write types
         for (let i = 0; i < model.types.length; i++) {
             const type = model.types[i];
-            if (!generator.createdRecords[type.name] || generator.createdRecords[type.name] < 1000) {
-                generator.createdRecords[type.name] = 1;
+            if (!generator.createdRecords[type.name] || generator.createdRecords[type.name] < this.records) {
+                generator.updateRecord(type.name);
                 while (generator.createdRecords[type.name] <= this.records) {
                     const recordName = `${type.name}${generator.createdRecords[type.name]}:`;
                     const createString = `create${type.name} (\ndata:\n`;
                     const closeString = `\n) { id }\n`;
                     stream.write(recordName);
                     stream.write(createString);
-                    stream.write(`${inspect(generator.generateType(type), { depth: Infinity })}${closeString}`);
+                    stream.write(`${inspect(generator.generateType(type), { depth: Infinity }).replace(/'/g, `"`)}${closeString}`);
                 }
             }
         }

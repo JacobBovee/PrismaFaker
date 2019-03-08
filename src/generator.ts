@@ -9,6 +9,7 @@ import {
     SCALAR_NUMBER_MAX,
     SCALAR_NUMBER_MIN,
 } from './constants';
+import * as faker from 'faker';
 
 interface CreatedRecords {
     [record: string]: number;
@@ -27,8 +28,7 @@ interface GeneratedType {
 type ScalarType = 
     | string
     | number
-    | boolean
-    | Date;
+    | boolean;
 
 export class Generator {
     model: JSONModel;
@@ -57,6 +57,8 @@ export class Generator {
                 generatedType[field.name] = generated;
             }
         }
+
+        // Increment created type
         this.createdRecords[type.name]++;
 
         return generatedType;
@@ -70,7 +72,7 @@ export class Generator {
      */
     generateField(field: JSONField, inType: string[]): object | false | ScalarType {
         const fieldType = utils.namedType(field);
-        // Move this error logic to model class
+        // 1: Move this error logic to model class
         if (!fieldType) {
             throw new Error(`Your model contains is missing a type on field: ${field.name}`);
         }
@@ -83,10 +85,14 @@ export class Generator {
 
             if (isType) {
                 if (required) {
-                    const generatedType = this.generateType(isType, inType.concat(fieldType));
-
-                    return { create: generatedType };
+                    if (inType.length > 1) {
+                        return false;
+                    }
+    
+                    this.updateRecord(fieldType);
+                    return { create: this.generateType(isType, inType.concat(isType.name)) };
                 }
+
                 return false;
             }
             else if (required || this.generateBoolean()) {
@@ -101,6 +107,20 @@ export class Generator {
             }
         }
         return false;
+    }
+
+    /**
+     * 
+     * @param typeName 
+     * Increments createdRecords
+     */
+    updateRecord(typeName: string) {
+        if (!this.createdRecords[typeName]) {
+            this.createdRecords[typeName] = 1;
+        }
+        else {
+            this.createdRecords[typeName]++;
+        }
     }
 
     /**
@@ -135,9 +155,9 @@ export class Generator {
             case 'String':
                 return this.generateString();
             case 'Int':
-                return Math.floor(this.generateNumber(SCALAR_NUMBER_MAX, SCALAR_NUMBER_MIN));
+                return Math.floor(this.generateNumber());
             case 'Float':
-                return this.generateNumber(SCALAR_NUMBER_MAX, SCALAR_NUMBER_MIN);
+                return this.generateNumber();
             case 'DateTime':
                 return this.generateDateTime();
             case 'Boolean':
@@ -145,31 +165,26 @@ export class Generator {
             case 'JSON':
                 return this.generateJSON();
             default:
-                console.log(fieldType);
+
                 throw new Error('Some fields did not contain a valid type');
         }
     }
 
     /**
      * 
-     * @param max max range of random number
-     * @param min min range of random number
+
      * @returns { number }
      */
-    generateNumber(max: number, min: number): number {
-        return Math.random() * ((max - min) + min);
+    generateNumber(): number {
+        return faker.random.number();
     }
 
     /**
      * @returns { string }
      */
     generateString(): string {
-        let randomString = '';
-        for (let i = 0; i < this.generateNumber(0, 20); i++) {
-            randomString += String.fromCharCode(this.generateNumber(65, 91));
-        }
 
-        return randomString;
+        return faker.lorem.text();
     }
 
     /**
@@ -180,10 +195,10 @@ export class Generator {
     }
 
     /**
-     * @return { Date }
+     * @return { string }
      */
-    generateDateTime(): Date {
-        return new Date();
+    generateDateTime(): string {
+        return faker.date.recent().toString();
     }
 
     /**
